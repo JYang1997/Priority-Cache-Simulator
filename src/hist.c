@@ -11,7 +11,7 @@ Hist_t* histInit(int begin, int end, int interval)
 	hist -> size = slots+2;
 	hist -> interval = interval;
 	hist -> tot = 0;
-	hist -> Hist = (int*)malloc(sizeof(int)*(slots+2));
+	hist -> Hist = (double*)malloc(sizeof(double)*(slots+2));
 
 	int i;
 	for(i = 0; i < slots+2; i++)
@@ -45,3 +45,4 @@ void addToHist(Hist_t* hist, long long age)
 		}
 	}
 }
+

@@ -2,7 +2,7 @@
 #define JY_HIST_H
 
 typedef struct Hist_t {
-	int32_t* Hist; //contain first to last + coldmiss box
+	double* Hist; //contain first to last + coldmiss box
 	int first;
 	int size; 
 	int interval;
