@@ -1,23 +1,9 @@
 #include "RankCache.h"
 #include "hist.h"
+#include "priority.h"
 #include <assert.h>
 
-
-
-typedef struct _HC_Priority_t 
-{
-	uint32_t refCount;
-	uint32_t enterTime;
-	
-} HC_Priority_t;
-
-
-typedef struct _RedisLFU_Priority_t
-{
-	uint32_t refCount;
-
-} RedisLFU_Priority_t;
-
+/*********************************HC priority interface************************************************/
 
 void* HC_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
 
@@ -55,36 +41,8 @@ RankCache_Item_t* HC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1
 }
 
 
-/**
- *LHD implementation
- * LHD require two tables for compute it's rank
- * 1. hit distribution 2.lifetime distribution
- * a. in there implementation, they precomput a table for lhd vs age
- * then rank calculation is simply a lookup
- * for now, we will explicitly compute the the LHD for every lookup
- * for actual usage periodically updated lookup table needed
- *
- * hit distribution, is reuse time histogram
- * life time distribution, record both hit and evict of age a.
- *
- * for each item, we will need a field to store the last access time
- * then age is simply number of access since last accessed, 
- * note this is not reuse time, because age is collected at eviction
- *  
- */
 
-Hist_t *hitHist = NULL;
-Hist_t *lifeTimeHist = NULL;
-Hist_t *lhdHist = NULL;
-uint32_t lastUpdateTime = 0;
-int lhd_period = 100000;
-
-typedef struct _LHD_Priority_t
-{
-	uint32_t lastAccessTime;
-
-} LHD_Priority_t;
-
+/*********************************LHD priority interface************************************************/
 
 
 void* LHD_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
@@ -140,9 +98,10 @@ RankCache_Item_t* LHD_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 	
 	//check when is last time update the table
 	//if 10000 reference passed, update it
-	if(cache->clock - lhd_period > lastUpdateTime){
+	if (cache->clock - lhd_period > lastUpdateTime){
 		lastUpdateTime = cache->clock;
 		updateLHDHist();
+	//	printf("%lld\n", cache->totRef);
 	}
 
 	double p1, p2;
@@ -164,22 +123,19 @@ RankCache_Item_t* LHD_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 		lhd_index2 = lhdHist->size-1;
 	}
 
+	//both mul hist step = not
+	//p1 = lhdHist->Hist[lhd_index1]/(histstep*(item1->size));
+	//p2 = lhdHist->Hist[lhd_index2]/(histstep*(item2->size));
 
 	p1 = lhdHist->Hist[lhd_index1]/(item1->size);
 	p2 = lhdHist->Hist[lhd_index2]/(item2->size);
 
+	//printf("age1: %d p1 %f age2: %d p2 %f tot: %lld\n",age1, p1, age2, p2,  cache->totRef);
 	return p1 <= p2 ? item1 : item2;
 }
 
 
-
-typedef struct _LRU_Priority_t
-{
-	uint32_t lastAccessTime;
-
-} LRU_Priority_t;
-
-
+/*********************************LRU priority interface************************************************/
 
 void* LRU_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
 	LRU_Priority_t* p = malloc(sizeof(LRU_Priority_t));
@@ -212,13 +168,8 @@ RankCache_Item_t* LRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 
 
 
-typedef struct _LFU_Priority_t
-{
-	uint32_t freqCnt;
 
-} LFU_Priority_t;
-
-
+/*********************************LFU priority interface************************************************/
 
 void* LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
 	LFU_Priority_t* p = malloc(sizeof(LFU_Priority_t));
@@ -228,7 +179,7 @@ void* LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
 
 void LFU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) {
 	LFU_Priority_t* p = (LFU_Priority_t*)(item->priority);
-	p->freqCnt += 1;
+	p->freqCnt +=1;
 }
 
 void LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item) {

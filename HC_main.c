@@ -26,7 +26,7 @@ Hist_t *lifeTimeHist = NULL;
 Hist_t *lhdHist = NULL;
 uint32_t lastUpdateTime = 0;
 int lhd_period = 100000;
-int upcnt = 0;
+
 
 typedef struct _HC_Priority_t 
 {
@@ -209,7 +209,6 @@ RankCache_Item_t* LHD_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 	if (cache->clock - lhd_period > lastUpdateTime){
 		lastUpdateTime = cache->clock;
 		updateLHDHist();
-		upcnt++;
 	//	printf("%lld\n", cache->totRef);
 	}
 
