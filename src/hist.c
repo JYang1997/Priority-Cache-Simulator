@@ -1,4 +1,5 @@
-#include "hist.h"
+#include "../inc/hist.h"
+#include <stdlib.h>
 
 
 

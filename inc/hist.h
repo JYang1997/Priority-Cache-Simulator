@@ -1,5 +1,6 @@
 #ifndef JY_HIST_H
 #define JY_HIST_H
+#define COLDMISS -1234
 
 typedef struct Hist_t {
 	double* Hist; //contain first to last + coldmiss box

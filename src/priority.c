@@ -44,6 +44,11 @@ RankCache_Item_t* HC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1
 
 /*********************************LHD priority interface************************************************/
 
+Hist_t *hitHist = NULL;
+Hist_t *lifeTimeHist = NULL;
+Hist_t *lhdHist = NULL;
+uint32_t lastUpdateTime = 0;
+int lhd_period = 100000;
 
 void* LHD_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
 	LHD_Priority_t* p = malloc(sizeof(LHD_Priority_t));

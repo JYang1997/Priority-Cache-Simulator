@@ -1,5 +1,6 @@
 
-
+#ifndef JY_PRIORITY_H
+#define JY_PRIORITY_H
 /*********************************LRU priority interface************************************************/
 
 typedef struct _LRU_Priority_t
@@ -66,12 +67,12 @@ RankCache_Item_t* HC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1
  *  
  */
 
-Hist_t *hitHist = NULL;
-Hist_t *lifeTimeHist = NULL;
-Hist_t *lhdHist = NULL;
-uint32_t lastUpdateTime = 0;
-int lhd_period = 100000;
-int upcnt = 0;
+
+extern Hist_t *hitHist;
+extern Hist_t *lifeTimeHist;
+extern Hist_t *lhdHist;
+extern uint32_t lastUpdateTime;
+extern int lhd_period;
 
 typedef struct _LHD_Priority_t
 {
@@ -84,3 +85,4 @@ void LHD_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item);
 void LHD_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item);
 RankCache_Item_t* LHD_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
 
+#endif /*JY_PRIORITY_H*/
