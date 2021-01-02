@@ -44,54 +44,77 @@ RankCache_Item_t* HC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1
 
 /*********************************LHD priority interface************************************************/
 
-Hist_t *hitHist = NULL;
-Hist_t *lifeTimeHist = NULL;
-Hist_t *lhdHist = NULL;
-uint64_t lastUpdateTime = 0;
-int lhd_period = 100000;
+
+
+void LHD_globalDataInit(RankCache_t* cache) {
+	LHD_globalData* gd = malloc(sizeof(LHD_globalData));
+
+	gd->hitHist = histInit(128,1024*1024*10, 128);
+	gd->lifeTimeHist = histInit(128,1024*1024*10, 128);
+	gd->lhdHist = histInit(128,1024*1024*10, 128);
+
+	gd->lastUpdateTime = 0;
+	gd->lhd_period = 100000;
+
+	cache->globalData = (void*)gd;
+}
 
 void* LHD_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
+	LHD_globalData* gd = (LHD_globalData*) cache->globalData;
+
 	LHD_Priority_t* p = malloc(sizeof(LHD_Priority_t));
 	p->lastAccessTime = cache->clock;
-	addToHist(hitHist, COLDMISS);
-	addToHist(lifeTimeHist, COLDMISS);
+	addToHist(gd->hitHist, COLDMISS);
+	addToHist(gd->lifeTimeHist, COLDMISS);
 	return p;
 } 
 
 void LHD_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) {
+	
+	LHD_globalData* gd = (LHD_globalData*) cache->globalData;
+
 	LHD_Priority_t* p = (LHD_Priority_t*)(item->priority);
 
 	uint64_t age = (cache->clock)-(p->lastAccessTime);
-	addToHist(hitHist, age);
-	addToHist(lifeTimeHist, age);
+	addToHist(gd->hitHist, age);
+	addToHist(gd->lifeTimeHist, age);
 	
 	p->lastAccessTime = cache->clock;
 }
 
 
 void LHD_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item) {
+	
+	LHD_globalData* gd = (LHD_globalData*) cache->globalData;
+
 	LHD_Priority_t* p = (LHD_Priority_t*)(item->priority);
 	uint64_t age = (cache->clock)-(p->lastAccessTime);
-	addToHist(lifeTimeHist, age);
+	addToHist(gd->lifeTimeHist, age);
 
 }
 
-void updateLHDHist() {
-	assert(lhdHist->size > 0);
+void updateLHDHist(RankCache_t* cache) {
 	
+	
+	LHD_globalData* gd = (LHD_globalData*) cache->globalData;
+
+	assert(gd->lhdHist->size > 0);
+	
+	
+
 	//include cold miss? or not
-	double acc_Hit = hitHist->Hist[lhdHist->size-1];
-	double acc_lifetime = lifeTimeHist->Hist[lhdHist->size-1];
+	double acc_Hit = gd->hitHist->Hist[gd->lhdHist->size-1];
+	double acc_lifetime = gd->lifeTimeHist->Hist[gd->lhdHist->size-1];
 	double exp_lifetime = acc_lifetime;
 
-	lhdHist->Hist[lhdHist->size-1] = (acc_Hit/(hitHist->tot))/(exp_lifetime/(lifeTimeHist->tot));
+	gd->lhdHist->Hist[gd->lhdHist->size-1] = (acc_Hit/(gd->hitHist->tot))/(exp_lifetime/(gd->lifeTimeHist->tot));
 
-	for (int i = lhdHist->size-2; i >= 0 ; --i)
+	for (int i = gd->lhdHist->size-2; i >= 0 ; --i)
 	{
 
-		lhdHist->Hist[i] = (acc_Hit/(hitHist->tot))/(exp_lifetime/(lifeTimeHist->tot));
-		acc_Hit += hitHist->Hist[i];
-		acc_lifetime += lifeTimeHist->Hist[i];
+		gd->lhdHist->Hist[i] = (acc_Hit/(gd->hitHist->tot))/(exp_lifetime/(gd->lifeTimeHist->tot));
+		acc_Hit += gd->hitHist->Hist[i];
+		acc_lifetime += gd->lifeTimeHist->Hist[i];
 		exp_lifetime  += acc_lifetime;
 	}
 }
@@ -101,11 +124,12 @@ RankCache_Item_t* LHD_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 	assert(item1 != NULL);
 	assert(item2 != NULL);
 	
+	LHD_globalData* gd = (LHD_globalData*) cache->globalData;
 	//check when is last time update the table
 	//if 10000 reference passed, update it
-	if (cache->clock - lhd_period > lastUpdateTime){
-		lastUpdateTime = cache->clock;
-		updateLHDHist();
+	if (cache->clock - gd->lhd_period > gd->lastUpdateTime){
+		gd->lastUpdateTime = cache->clock;
+		updateLHDHist(cache);
 	//	printf("%lld\n", cache->totRef);
 	}
 
@@ -117,23 +141,23 @@ RankCache_Item_t* LHD_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 	uint64_t age1 = (cache->clock)-(pp1->lastAccessTime);
 	uint64_t age2 = (cache->clock)-(pp2->lastAccessTime);
 
-	int lhd_index1 = (((int)age1 - lhdHist->first) / (lhdHist->interval)) + 1;
-	int lhd_index2 = (((int)age2 - lhdHist->first) / (lhdHist->interval)) + 1;
+	int lhd_index1 = (((int)age1 - gd->lhdHist->first) / (gd->lhdHist->interval)) + 1;
+	int lhd_index2 = (((int)age2 - gd->lhdHist->first) / (gd->lhdHist->interval)) + 1;
 
-	if(lhd_index1 > lhdHist->size-1) {
-		lhd_index1 = lhdHist->size-1;
+	if(lhd_index1 > gd->lhdHist->size-1) {
+		lhd_index1 = gd->lhdHist->size-1;
 	}
 
-	if(lhd_index2 > lhdHist->size-1) {
-		lhd_index2 = lhdHist->size-1;
+	if(lhd_index2 > gd->lhdHist->size-1) {
+		lhd_index2 = gd->lhdHist->size-1;
 	}
 
 	//both mul hist step = not
-	//p1 = lhdHist->Hist[lhd_index1]/(histstep*(item1->size));
-	//p2 = lhdHist->Hist[lhd_index2]/(histstep*(item2->size));
+	//p1 = gd->lhdHist->Hist[lhd_index1]/(histstep*(item1->size));
+	//p2 = gd->lhdHist->Hist[lhd_index2]/(histstep*(item2->size));
 
-	p1 = lhdHist->Hist[lhd_index1]/(item1->size);
-	p2 = lhdHist->Hist[lhd_index2]/(item2->size);
+	p1 = gd->lhdHist->Hist[lhd_index1]/(item1->size);
+	p2 = gd->lhdHist->Hist[lhd_index2]/(item2->size);
 
 	//printf("age1: %d p1 %f age2: %d p2 %f tot: %lld\n",age1, p1, age2, p2,  cache->totRef);
 	return p1 <= p2 ? item1 : item2;

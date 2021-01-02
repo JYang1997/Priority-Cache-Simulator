@@ -74,6 +74,16 @@ extern Hist_t *lhdHist;
 extern uint64_t lastUpdateTime;
 extern int lhd_period;
 
+typedef struct _LHD_globalData {
+	Hist_t *hitHist;
+	Hist_t *lifeTimeHist;
+	Hist_t *lhdHist;
+	uint64_t lastUpdateTime;
+	int lhd_period;
+} LHD_globalData;
+
+void LHD_globalDataInit(RankCache_t* cache);
+
 typedef struct _LHD_Priority_t
 {
 	uint64_t lastAccessTime;

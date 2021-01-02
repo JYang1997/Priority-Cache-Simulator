@@ -65,6 +65,8 @@ typedef struct _RankCache_t {
 	double capacity; //cap reduce by item's size per access
 					//the default size is 1, act as logical cache
 	
+	void* globalData; //pointer to struct holding global information for replacement policy
+
 	CreatePriority createPriority;
 	UpdatePriorityOnHit updatePriorityOnHit;
 	UpdatePriorityOnEvict updatePriorityOnEvict;
