@@ -28,7 +28,7 @@ struct _RankCache_t;
 //Object structs
 typedef struct _RankCache_Item_t {
 	uint64_t key; //item's key
-	uint32_t index; //this is the index of item in the cache, used for fast insertion
+	uint64_t index; //this is the index of item in the cache, used for fast insertion
 					//and fast sampling
 	//item size user define, for logical size use 1.
 	double size; 
@@ -46,10 +46,10 @@ typedef void (*UpdatePriorityOnEvict)(struct _RankCache_t*, RankCache_Item_t*);
 typedef RankCache_Item_t* (*MinPriorityItem)(struct _RankCache_t*, RankCache_Item_t*, RankCache_Item_t*);
 
 typedef struct _RankCache_t {
-	long long totRef; //not neccessary parameters
-	long long totKey;
+	uint64_t totRef; //not neccessary parameters
+	uint64_t totKey;
 
-	long long clock; //logical clock // similar to totRef here
+	uint64_t clock; //logical clock // similar to totRef here
 
 	uint32_t sample_size;
 
@@ -57,7 +57,7 @@ typedef struct _RankCache_t {
 	 * total number of key in the hashtable
 	 * depending on the size of item in the cache, currNum could go up and down
 	 */
-	uint32_t currNum; 
+	uint64_t currNum; 
 
 	//since item size is define by user
 	//capacity and size is double to adapt to fraction number
@@ -99,12 +99,12 @@ void cacheTrunc();
 
 
 
-uint8_t access(RankCache_t* cache, uint64_t key, uint32_t size);
-uint32_t evictItem(RankCache_t* cache);
+uint8_t access(RankCache_t* cache, uint64_t key, uint64_t size);
+uint64_t evictItem(RankCache_t* cache);
 void addItem(RankCache_t* cache, RankCache_Item_t* item);
 
 //for a logical cache, size is just one
-RankCache_Item_t* createItem(uint64_t key, uint32_t size, uint32_t index); 
+RankCache_Item_t* createItem(uint64_t key, uint64_t size, uint64_t index); 
 RankCache_Item_t* findItem(RankCache_t* cache, uint64_t key);
 
 
@@ -112,11 +112,11 @@ RankCache_Item_t* findItem(RankCache_t* cache, uint64_t key);
 
 //iternal wrapper
 void random_init();
-uint32_t random_index();
+uint64_t random_index();
 
 
 
 
 
 
-#endif /*JY_LFU_LIST_STACK_H*/
+#endif 

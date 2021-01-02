@@ -5,7 +5,7 @@
 
 typedef struct _LRU_Priority_t
 {
-	uint32_t lastAccessTime;
+	uint64_t lastAccessTime;
 
 } LRU_Priority_t;
 
@@ -20,7 +20,7 @@ RankCache_Item_t* LRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 
 typedef struct _LFU_Priority_t
 {
-	uint32_t freqCnt;
+	uint64_t freqCnt;
 
 } LFU_Priority_t;
 
@@ -37,8 +37,8 @@ RankCache_Item_t* LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 
 typedef struct _HC_Priority_t 
 {
-	uint32_t refCount;
-	uint32_t enterTime;
+	uint64_t refCount;
+	uint64_t enterTime;
 	
 } HC_Priority_t;
 
@@ -71,12 +71,12 @@ RankCache_Item_t* HC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1
 extern Hist_t *hitHist;
 extern Hist_t *lifeTimeHist;
 extern Hist_t *lhdHist;
-extern uint32_t lastUpdateTime;
+extern uint64_t lastUpdateTime;
 extern int lhd_period;
 
 typedef struct _LHD_Priority_t
 {
-	uint32_t lastAccessTime;
+	uint64_t lastAccessTime;
 
 } LHD_Priority_t;
 

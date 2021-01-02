@@ -47,7 +47,7 @@ RankCache_Item_t* HC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1
 Hist_t *hitHist = NULL;
 Hist_t *lifeTimeHist = NULL;
 Hist_t *lhdHist = NULL;
-uint32_t lastUpdateTime = 0;
+uint64_t lastUpdateTime = 0;
 int lhd_period = 100000;
 
 void* LHD_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
@@ -61,7 +61,7 @@ void* LHD_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
 void LHD_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) {
 	LHD_Priority_t* p = (LHD_Priority_t*)(item->priority);
 
-	uint32_t age = (cache->clock)-(p->lastAccessTime);
+	uint64_t age = (cache->clock)-(p->lastAccessTime);
 	addToHist(hitHist, age);
 	addToHist(lifeTimeHist, age);
 	
@@ -71,7 +71,7 @@ void LHD_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) {
 
 void LHD_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item) {
 	LHD_Priority_t* p = (LHD_Priority_t*)(item->priority);
-	uint32_t age = (cache->clock)-(p->lastAccessTime);
+	uint64_t age = (cache->clock)-(p->lastAccessTime);
 	addToHist(lifeTimeHist, age);
 
 }
@@ -114,8 +114,8 @@ RankCache_Item_t* LHD_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 	LHD_Priority_t* pp2 = (LHD_Priority_t*)(item2->priority);
 
 	//evict the one with low priority
-	uint32_t age1 = (cache->clock)-(pp1->lastAccessTime);
-	uint32_t age2 = (cache->clock)-(pp2->lastAccessTime);
+	uint64_t age1 = (cache->clock)-(pp1->lastAccessTime);
+	uint64_t age2 = (cache->clock)-(pp2->lastAccessTime);
 
 	int lhd_index1 = (((int)age1 - lhdHist->first) / (lhdHist->interval)) + 1;
 	int lhd_index2 = (((int)age2 - lhdHist->first) / (lhdHist->interval)) + 1;
@@ -166,8 +166,8 @@ RankCache_Item_t* LRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 
 	LRU_Priority_t* pp1 = (LRU_Priority_t*)(item1->priority);
 	LRU_Priority_t* pp2 = (LRU_Priority_t*)(item2->priority);
-	uint32_t p1 = pp1->lastAccessTime;
-	uint32_t p2 = pp2->lastAccessTime;
+	uint64_t p1 = pp1->lastAccessTime;
+	uint64_t p2 = pp2->lastAccessTime;
 	return p1 <= p2 ? item1 : item2;
 }
 
@@ -199,7 +199,7 @@ RankCache_Item_t* LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 
 	LFU_Priority_t* pp1 = (LFU_Priority_t*)(item1->priority);
 	LFU_Priority_t* pp2 = (LFU_Priority_t*)(item2->priority);
-	uint32_t p1 = pp1->freqCnt;
-	uint32_t p2 = pp2->freqCnt;
+	uint64_t p1 = pp1->freqCnt;
+	uint64_t p2 = pp2->freqCnt;
 	return p1 <= p2 ? item1 : item2;
 }
