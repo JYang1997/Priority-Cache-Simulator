@@ -79,7 +79,7 @@ arg5: timer flag (1 yes 0 no)\n\
 This runnable accept filtered trace, \"key, size\"\n\
 If size is not provided by default use logical size.\n";
 
-	if(argc < 5) { 
+	if(argc < 6) { 
 		printf("%s", input_format);
 		return 0;
 	}
