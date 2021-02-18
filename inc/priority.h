@@ -15,6 +15,21 @@ void LRU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item);
 RankCache_Item_t* LRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
 
 
+
+/*********************************MRU priority interface************************************************/
+
+typedef struct _MRU_Priority_t
+{
+	uint64_t lastAccessTime;
+
+} MRU_Priority_t;
+
+void* MRU_initPriority(RankCache_t* cache, RankCache_Item_t* item);
+void MRU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item);
+void MRU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item);
+RankCache_Item_t* MRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
+
+
 /*********************************LFU priority interface************************************************/
 
 

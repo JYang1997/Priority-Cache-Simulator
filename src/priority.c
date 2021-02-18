@@ -196,6 +196,37 @@ RankCache_Item_t* LRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 }
 
 
+/*********************************MRU priority interface************************************************/
+
+
+void* MRU_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
+	MRU_Priority_t* p = malloc(sizeof(MRU_Priority_t));
+	p->lastAccessTime = cache->clock;
+	return p;
+} 
+
+void MRU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) {
+	MRU_Priority_t* p = (MRU_Priority_t*)(item->priority);
+	p->lastAccessTime = cache->clock;
+}
+
+
+void MRU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item) {
+}
+
+
+//only diffference between LRU is this comparison function
+RankCache_Item_t* MRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2) {
+	
+	assert(item1 != NULL);
+	assert(item2 != NULL);
+
+	MRU_Priority_t* pp1 = (MRU_Priority_t*)(item1->priority);
+	MRU_Priority_t* pp2 = (MRU_Priority_t*)(item2->priority);
+	uint64_t p1 = pp1->lastAccessTime;
+	uint64_t p2 = pp2->lastAccessTime;
+	return p1 > p2 ? item1 : item2;
+}
 
 
 /*********************************LFU priority interface************************************************/

@@ -119,7 +119,14 @@ If size is not provided by default use logical size.\n";
 								   LRU_updatePriorityOnHit,
 								   LRU_updatePriorityOnEvict,
 								   LRU_minPriorityItem);
-	} else if (strcmp(argv[4], "lfu") == 0) {
+	}else if (strcmp(argv[4], "mru") == 0) {
+		cache = cacheInit(strtoul(argv[2], NULL, 10),
+								   strtoul(argv[3], NULL, 10),
+								   MRU_initPriority,
+								   MRU_updatePriorityOnHit,
+								   MRU_updatePriorityOnEvict,
+								   MRU_minPriorityItem); 
+	}else if (strcmp(argv[4], "lfu") == 0) {
 		cache = cacheInit(strtoul(argv[2], NULL, 10),
 								   strtoul(argv[3], NULL, 10),
 								   LFU_initPriority,
