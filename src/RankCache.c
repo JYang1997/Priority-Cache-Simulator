@@ -28,6 +28,7 @@ RankCache_t* cacheInit(double cap,
 	uint64_t seeds[2];
     entropy_getbytes((void*)seeds, sizeof(seeds));
     pcg64_srandom(seeds[0], seeds[1]);
+	RC->currNum = 0;
 	RC->capacity = cap;
 	RC->currSize = 0;
 	RC->sample_size = sam;
