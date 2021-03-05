@@ -57,6 +57,8 @@ void cacheFree(RankCache_t* cache) {
     free(currItem->priority);
     free(currItem);            /* optional- if you want to free  */
   }
+
+  free((void*)cache);
 }
 
 
