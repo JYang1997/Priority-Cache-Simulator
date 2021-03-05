@@ -69,7 +69,6 @@ uint8_t access(RankCache_t* cache, uint64_t key, uint64_t size) {
 	RankCache_Item_t* item = findItem(cache, key);
 
 	if (item == NULL) {//cache miss
-		cache->totKey++;
 
 		if (size > cache->capacity) {
 			/*handle size is larger than cache,
@@ -147,6 +146,7 @@ uint64_t evictItem(RankCache_t* cache) {
 		free(min);
 		cache->currNum--;
 		cache->currSize -= min->size;
+		cache->totKey--;
 		if (cache->currSize > cache->capacity) { //eps need
 			//currNum always pointed to next index, if one evicted
 			//we should change the item with currNum index to smaller one
@@ -173,6 +173,7 @@ void addItem(RankCache_t* cache, RankCache_Item_t* item) {
 	assert(item != NULL && cache != NULL);
 	HASH_ADD(pos_hh, cache->ItemIndex_HashTable, index, sizeof(uint64_t), item);
 	HASH_ADD(key_hh, cache->Item_HashTable, key, sizeof(uint64_t), item);
+	cache->totKey++;
 	cache->currNum++;
 }
 
