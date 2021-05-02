@@ -62,7 +62,25 @@ void cacheFree(RankCache_t* cache) {
 }
 
 
-uint8_t access(RankCache_t* cache, uint64_t key, uint64_t size) {
+RankCache_Item_t* RC_get(RankCache_t* cache, uint64_t key) {
+
+    assert(cache != NULL);
+
+    cache->clock += 1;
+    cache->stat->totRef += 1;
+    cache->stat->totGet += 1;
+
+    AC_Item_t* item = findItem(cache, key);
+
+    if (item == NULL) cache->stat->totMiss += 1;
+    return item;
+}
+
+uint8_t RC_set(RankCache_t* cache, uint64_t key, uint64_t size) {
+	
+}
+
+uint8_t RC_getAndSet(RankCache_t* cache, uint64_t key, uint64_t size) {
 
 	assert(cache != NULL);
 	cache->clock++;

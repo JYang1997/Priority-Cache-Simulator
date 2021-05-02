@@ -40,14 +40,24 @@ typedef struct _RankCache_Item_t {
 	UT_hash_handle pos_hh; //position handler for fast cache insertion
 } RankCache_Item_t;
 
+
+typedef struct  _RC_Stats_t {
+	uint64_t totRef; //tot references to cache
+	uint64_t totKey; //tot Key in cache
+	uint64_t totMiss;
+	uint64_t totGet; 
+	uint64_t totSet;
+	uint64_t totGetSet;
+	uint64_t totDel;
+	uint64_t totEvict;
+} RC_Stats_t;
+
 typedef void* (*CreatePriority)(struct _RankCache_t*, RankCache_Item_t*);
 typedef void (*UpdatePriorityOnHit)(struct _RankCache_t*, RankCache_Item_t*);
 typedef void (*UpdatePriorityOnEvict)(struct _RankCache_t*, RankCache_Item_t*);
 typedef RankCache_Item_t* (*MinPriorityItem)(struct _RankCache_t*, RankCache_Item_t*, RankCache_Item_t*);
 
 typedef struct _RankCache_t {
-	uint64_t totRef; //not neccessary parameters
-	uint64_t totKey;
 
 	uint64_t clock; //logical clock // similar to totRef here
 
@@ -72,9 +82,13 @@ typedef struct _RankCache_t {
 	UpdatePriorityOnEvict updatePriorityOnEvict;
 	MinPriorityItem minPriorityItem;
 
+	RC_Stats_t* stat;
+
 	RankCache_Item_t *ItemIndex_HashTable; //fast item insert and random sampling
 	RankCache_Item_t *Item_HashTable; //hashtable used for storing
 } RankCache_t;
+
+
 
 
 //check better naming
@@ -92,16 +106,38 @@ void cacheFree(RankCache_t* cache);
 
 /******************************
  * methods for trunc the cache in runtime
- * this is probably needed for adapt to 
+ * this is probably needed for adap
  *
 *******************************/
 void cacheTrunc();
 /*********************************/
 
+//cache operations
+
+//find object in the cache
+// if exist return the object 
+//if does not exist return NULL
+RankCache_Item_t* RC_get(RankCache_t* cache, uint64_t key);
+
+//set item, return 1 on completion else return 0
+uint8_t RC_set(RankCache_t* cache, uint64_t key, uint64_t size);
+//delete object,
+//if object exist return 1
+//if the object does not exist return 0
+//on error return -1
+uint8_t RC_del(RankCache_t* cache, uint64_t key);
+
+//expired ops, TODO
+uint8_t RC_delay_del(RankCache_t* cache, uint64_t key);
+
+//standard caching operation
+//return 1 on hits
+//return 0 on miss
+uint8_t RC_getAndSet(RankCache_t* cache, uint64_t key, uint64_t size);
 
 
 
-uint8_t access(RankCache_t* cache, uint64_t key, uint64_t size);
+
 uint64_t evictItem(RankCache_t* cache);
 void addItem(RankCache_t* cache, RankCache_Item_t* item);
 
