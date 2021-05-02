@@ -48,7 +48,7 @@ typedef struct  _RC_Stats_t {
 	uint64_t totGet; 
 	uint64_t totSet;
 	uint64_t totGetSet;
-	uint64_t totDel;
+	uint64_t totDel; //record total number of delete operations
 	uint64_t totEvict;
 } RC_Stats_t;
 
@@ -122,10 +122,8 @@ RankCache_Item_t* RC_get(RankCache_t* cache, uint64_t key);
 //set item, return 1 on completion else return 0
 uint8_t RC_set(RankCache_t* cache, uint64_t key, uint64_t size);
 //delete object,
-//if object exist return 1
-//if the object does not exist return 0
-//on error return -1
-uint8_t RC_del(RankCache_t* cache, uint64_t key);
+//return deleted object on success else NULL
+RankCache_Item_t* RC_del(RankCache_t* cache, uint64_t key);
 
 //expired ops, TODO
 uint8_t RC_delay_del(RankCache_t* cache, uint64_t key);
