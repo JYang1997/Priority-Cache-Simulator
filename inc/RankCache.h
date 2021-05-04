@@ -2,7 +2,7 @@
 #define JY_RANK_CACHE_H
 
 #include "uthash.h"
-
+#include <stdio.h>
 #define CACHE_HIT 1
 #define CACHE_MISS 0
 #define COLDMISS -1234
@@ -77,12 +77,15 @@ typedef struct _RankCache_t {
 	
 	void* globalData; //pointer to struct holding global information for replacement policy
 
+	char* policyName;
 	CreatePriority createPriority;
 	UpdatePriorityOnHit updatePriorityOnHit;
 	UpdatePriorityOnEvict updatePriorityOnEvict;
 	MinPriorityItem minPriorityItem;
 
 	RC_Stats_t* stat;
+
+
 
 	RankCache_Item_t *ItemIndex_HashTable; //fast item insert and random sampling
 	RankCache_Item_t *Item_HashTable; //hashtable used for storing
@@ -95,6 +98,7 @@ typedef struct _RankCache_t {
 
 RankCache_t* cacheInit(double cap, 
 					   uint32_t sam, 
+					   char* name,
 					   CreatePriority pInit,
 					   UpdatePriorityOnHit pUpdateOnHit,
 					   UpdatePriorityOnEvict pUpdateOnEvict,
@@ -102,7 +106,9 @@ RankCache_t* cacheInit(double cap,
 					   );
 void cacheFree(RankCache_t* cache);
 
+void RC_statInit(RC_Stats_t* stat);
 
+void output_results(RankCache_t* cache, FILE* fd);
 
 /******************************
  * methods for trunc the cache in runtime
@@ -125,6 +131,7 @@ uint8_t RC_set(RankCache_t* cache, uint64_t key, uint64_t size);
 //return deleted object on success else NULL
 RankCache_Item_t* RC_del(RankCache_t* cache, uint64_t key);
 
+RankCache_Item_t* RC_random_del(RankCache_t* cache);
 //expired ops, TODO
 uint8_t RC_delay_del(RankCache_t* cache, uint64_t key);
 
@@ -133,8 +140,8 @@ uint8_t RC_delay_del(RankCache_t* cache, uint64_t key);
 //return 0 on miss
 uint8_t RC_getAndSet(RankCache_t* cache, uint64_t key, uint64_t size);
 
-
-
+//randomly delete one item from cache p percent of the time
+uint8_t RC_getAndSet_randomDel(RankCache_t* cache, uint64_t key, uint64_t size, float p);
 
 uint64_t evictItem(RankCache_t* cache);
 void addItem(RankCache_t* cache, RankCache_Item_t* item);

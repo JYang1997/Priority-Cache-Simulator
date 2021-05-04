@@ -10,7 +10,7 @@ DOTO = $(IDIR2)/murmur3.o $(IDIR2)/entropy.o $(IDIR2)/libpcg_random.a
 all: CACHE
 
 CACHE: $(MAIN)
-	$(CC) $(CFLAGS) $(MAIN) $(SRC) $(DOTO) -O2 -g3 -lm -o rk_cache
+	$(CC) $(CFLAGS) $(MAIN) $(SRC) $(DOTO) -O2 -g -lm -o rk_cache
 
 clean:
 	rm -f rk_cache

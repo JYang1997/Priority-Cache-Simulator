@@ -14,13 +14,13 @@ pntNum=$3
 proNum=$4
 policy=$5
 sam=$6
+delperc=$7
 
 
 
-
-if [[ $# -ne 6 ]]; then
+if [[ $# -ne 7 ]]; then
 	echo "Illegal number of parameters"
-	echo "arg1 file, arg2 cmaxSize, arg3 #intervals, arg4 proNum, arg5 policy, arg6 sample size"
+	echo "arg1 file, arg2 cmaxSize, arg3 #intervals, arg4 proNum, arg5 policy, arg6 sample size, arg7 del ratio"
 	echo "policies: lru, lhd, lfu, hc. sample size = 1 is random eviciton"
 	exit
 fi
@@ -44,8 +44,8 @@ for (( j = $interval; j <= $obj; j+=$interval )); do
 	
 	for (( i=0 ; $cSize <= j; cSize+=$step )); do
 
-		output="${filename}_${sam}_${policy}.mrc"
-		./rk_cache $filename $cSize ${sam} ${policy} 1 0 2>> $output &
+		# output="${filename}_${sam}_${policy}.mrc"
+		./rk_cache $filename ./ $cSize ${sam} ${delperc} ${policy} 1 &
 
 	done		
 		
