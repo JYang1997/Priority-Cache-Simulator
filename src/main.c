@@ -79,7 +79,7 @@ arg2: output file(target dir + prefix, none = \"\")\n \
 arg3: Cache Size\n \
 arg4: Sample Size\n \
 arg5: del ops perc(0.0-1.0)\n\
-arg6: policy(hc, lru, lfu, lhd)\n\
+arg6: policy(hc, lru, in-cache-lfu, perfect-lfu, lhd)\n\
 arg7: timer flag (1 yes 0 no)\n\
 This runnable accept filtered trace, \"key, size\"\n\
 If size is not provided by default use logical size.\n";
@@ -102,7 +102,7 @@ If size is not provided by default use logical size.\n";
 	
 	char* input_path = strdup(argv[1]);
 	char buf[1024];
-	sprintf(buf, "%s%s_%s_%s.out", argv[2], basename(input_path), argv[4], argv[6]);
+	sprintf(buf, "%s%s_%s_%s_delPerc%s.out", argv[2], basename(input_path), argv[4], argv[6],argv[5]);
 
 	FILE*       wfd = NULL;
 	if((wfd = fopen(buf,"a")) == NULL)
@@ -142,14 +142,23 @@ If size is not provided by default use logical size.\n";
 								   MRU_updatePriorityOnHit,
 								   MRU_updatePriorityOnEvict,
 								   MRU_minPriorityItem); 
-	}else if (strcmp(argv[6], "lfu") == 0) {
+	}else if (strcmp(argv[6], "in-cache-lfu") == 0) {
 		cache = cacheInit(strtoul(argv[3], NULL, 10),
 								   strtoul(argv[4], NULL, 10),
-								   "lfu",
-								   LFU_initPriority,
-								   LFU_updatePriorityOnHit,
-								   LFU_updatePriorityOnEvict,
-								   LFU_minPriorityItem);
+								   "in-cache-lfu",
+								   In_Cache_LFU_initPriority,
+								   In_Cache_LFU_updatePriorityOnHit,
+								   In_Cache_LFU_updatePriorityOnEvict,
+								   In_Cache_LFU_minPriorityItem);
+	}else if (strcmp(argv[6], "perfect-lfu") == 0) {
+		cache = cacheInit(strtoul(argv[3], NULL, 10),
+								   strtoul(argv[4], NULL, 10),
+								   "perfect-lfu",
+								   Perfect_LFU_initPriority,
+								   Perfect_LFU_updatePriorityOnHit,
+								   Perfect_LFU_updatePriorityOnEvict,
+								   Perfect_LFU_minPriorityItem);
+		Perfect_LFU_globalDataInit(cache);
 	} else if (strcmp(argv[6], "hc") == 0) {
 			cache = cacheInit(strtoul(argv[3], NULL, 10),
 								   strtoul(argv[4], NULL, 10),
@@ -178,6 +187,7 @@ If size is not provided by default use logical size.\n";
 
 	output_results(cache, wfd);
 	cacheFree(cache);
+	//need to free global data
 	fclose(wfd);
 	fclose(rfd);
 	return 0;

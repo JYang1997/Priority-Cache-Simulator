@@ -1,5 +1,6 @@
 #include "RankCache.h"
 #include "hist.h"
+#include "uthash.h"
 #include "priority.h"
 #include <assert.h>
 
@@ -229,32 +230,104 @@ RankCache_Item_t* MRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 }
 
 
-/*********************************LFU priority interface************************************************/
+/*********************************in cache LFU priority interface************************************************/
 
-void* LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
-	LFU_Priority_t* p = malloc(sizeof(LFU_Priority_t));
+void* In_Cache_LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
+	In_Cache_LFU_Priority_t* p = malloc(sizeof(In_Cache_LFU_Priority_t));
 	p->freqCnt = 0;
+	p->lastAccessTime = cache->clock;
 	return p;
 } 
 
-void LFU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) {
-	LFU_Priority_t* p = (LFU_Priority_t*)(item->priority);
+void In_Cache_LFU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) {
+	In_Cache_LFU_Priority_t* p = (In_Cache_LFU_Priority_t*)(item->priority);
 	p->freqCnt +=1;
 }
 
-void LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item) {
+void In_Cache_LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item) {
 }
 
 
 
-RankCache_Item_t* LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2) {
+RankCache_Item_t* In_Cache_LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2) {
 	
 	assert(item1 != NULL);
 	assert(item2 != NULL);
 
-	LFU_Priority_t* pp1 = (LFU_Priority_t*)(item1->priority);
-	LFU_Priority_t* pp2 = (LFU_Priority_t*)(item2->priority);
+	In_Cache_LFU_Priority_t* pp1 = (In_Cache_LFU_Priority_t*)(item1->priority);
+	In_Cache_LFU_Priority_t* pp2 = (In_Cache_LFU_Priority_t*)(item2->priority);
 	uint64_t p1 = pp1->freqCnt;
 	uint64_t p2 = pp2->freqCnt;
+	if (p1 == p2) return pp1->lastAccessTime <= pp2->lastAccessTime ? item1 : item2;
+	return p1 < p2 ? item1 : item2;
+}
+
+/****************************perfect lfu priority interface************************************************/
+void Perfect_LFU_globalDataInit(RankCache_t* cache) {
+	Perfect_LFU_globalData* gd = malloc(sizeof(Perfect_LFU_globalData));
+
+	gd->EvictedItem_HashTable = NULL;
+
+	cache->globalData = (void*)gd;
+}
+
+void Perfect_LFU_globalDataFree(RankCache_t* cache) {
+	Perfect_LFU_globalData* gd = (Perfect_LFU_globalData*)cache->globalData;
+	Perfect_LFU_freqNode *currItem, *tmp;
+
+	HASH_ITER(freq_hh, gd->EvictedItem_HashTable, currItem, tmp) {
+		HASH_DELETE(freq_hh,gd->EvictedItem_HashTable, currItem);  /* delete; users advances to next */
+		free(currItem);           /* optional- if you want to free  */
+	}
+}
+
+//on init check whether it is in evicted table
+// if it is, use the old freq cnt
+void* Perfect_LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
+	
+
+	Perfect_LFU_Priority_t* p = malloc(sizeof(Perfect_LFU_Priority_t));
+	
+	Perfect_LFU_freqNode* temp;
+	HASH_FIND(freq_hh, ((Perfect_LFU_globalData*)(cache->globalData))->EvictedItem_HashTable, &(item->key), sizeof(uint64_t), temp);
+	if (temp == NULL) {
+		p->freqCnt = 0;
+	} else {
+		p->freqCnt = temp->freqCnt;
+	}
+	p->lastAccessTime = cache->clock;
+
+	return p;
+} 
+
+void Perfect_LFU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) {
+	Perfect_LFU_Priority_t* p = (Perfect_LFU_Priority_t*)(item->priority);
+	p->freqCnt +=1;
+}
+
+void Perfect_LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item) {
+//dup Item then store it to 
+	Perfect_LFU_freqNode* temp;
+	HASH_FIND(freq_hh, ((Perfect_LFU_globalData*)(cache->globalData))->EvictedItem_HashTable, &(item->key), sizeof(uint64_t), temp);
+	if (temp == NULL) {
+		temp = malloc(sizeof(Perfect_LFU_freqNode));
+		temp->key = item->key;
+		HASH_ADD(freq_hh, ((Perfect_LFU_globalData*)(cache->globalData))->EvictedItem_HashTable, key, sizeof(uint64_t), temp);
+	}
+	temp->freqCnt = ((Perfect_LFU_Priority_t*)(item->priority))->freqCnt;
+}
+
+
+
+RankCache_Item_t* Perfect_LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2) {
+	
+	assert(item1 != NULL);
+	assert(item2 != NULL);
+
+	Perfect_LFU_Priority_t* pp1 = (Perfect_LFU_Priority_t*)(item1->priority);
+	Perfect_LFU_Priority_t* pp2 = (Perfect_LFU_Priority_t*)(item2->priority);
+	uint64_t p1 = pp1->freqCnt;
+	uint64_t p2 = pp2->freqCnt;
+	if (p1 == p2) return pp1->lastAccessTime <= pp2->lastAccessTime ? item1 : item2;
 	return p1 <= p2 ? item1 : item2;
 }

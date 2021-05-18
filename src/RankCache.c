@@ -365,12 +365,14 @@ void output_results(RankCache_t* cache, FILE* fd) {
     t = tv.tv_sec;
 
     info = localtime(&t);
-    fprintf(fd,"%s ",asctime(info));
+    char *tstr = asctime(info);
+    tstr[strlen(tstr) - 1] = 0;
+    fprintf(fd,"%s ", tstr);
 
-    fprintf(fd, " CacheSize: %0.4f "
+    fprintf(fd, "CacheSize: %0.4f "
                 "SampleSize: %d "
                 "Policy: %s "
-                "missRate: %0.4f "
+                "missRate: %0.6f "
                 "totRef: %ld "
                 "totKey: %ld "
                 "totMiss: %ld "

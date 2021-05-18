@@ -30,22 +30,58 @@ void MRU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item);
 RankCache_Item_t* MRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
 
 
-/*********************************LFU priority interface************************************************/
+/*********************************incache LFU priority interface************************************************/
 
 
-typedef struct _LFU_Priority_t
+typedef struct _In_Cache_LFU_Priority_t
 {
 	uint64_t freqCnt;
+	uint64_t lastAccessTime;
 
-} LFU_Priority_t;
+} In_Cache_LFU_Priority_t;
 
 
 
-void* LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item);
-void LFU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item);
-void LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item);
+void* In_Cache_LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item);
+void In_Cache_LFU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item);
+void In_Cache_LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item);
 
-RankCache_Item_t* LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
+RankCache_Item_t* In_Cache_LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
+
+
+
+
+/*********************************perfect LFU priority interface************************************************/
+//must store deleted item into hash table
+typedef struct _Perfect_LFU_freqNode {
+	uint64_t key;
+	uint64_t freqCnt;
+	UT_hash_handle freq_hh; 
+} Perfect_LFU_freqNode;
+
+typedef struct _Perfect_LFU_globalData {
+	Perfect_LFU_freqNode *EvictedItem_HashTable;
+
+} Perfect_LFU_globalData;
+
+void Perfect_LFU_globalDataInit(RankCache_t* cache);
+void Perfect_LFU_globalDataFree(RankCache_t* cache);
+
+typedef struct _Perfect_LFU_Priority_t
+{
+	uint64_t freqCnt;
+	uint64_t lastAccessTime;
+
+} Perfect_LFU_Priority_t;
+
+
+
+void* Perfect_LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item);
+void Perfect_LFU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item);
+void Perfect_LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item);
+
+RankCache_Item_t* Perfect_LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
+
 
 
 /*********************************HC priority interface************************************************/
@@ -83,11 +119,11 @@ RankCache_Item_t* HC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1
  */
 
 
-extern Hist_t *hitHist;
-extern Hist_t *lifeTimeHist;
-extern Hist_t *lhdHist;
-extern uint64_t lastUpdateTime;
-extern int lhd_period;
+// extern Hist_t *hitHist;
+// extern Hist_t *lifeTimeHist;
+// extern Hist_t *lhdHist;
+// extern uint64_t lastUpdateTime;
+// extern int lhd_period;
 
 typedef struct _LHD_globalData {
 	Hist_t *hitHist;
