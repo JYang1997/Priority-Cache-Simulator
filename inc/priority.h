@@ -82,6 +82,24 @@ void Perfect_LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* ite
 
 RankCache_Item_t* Perfect_LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
 
+/*********************************pseudo-perfect LFU priority interface************************************************/
+//use logarithmic counter of max 255
+
+typedef struct _Pseudo_Perfect_LFU_Priority_t
+{
+	uint64_t freqCnt;
+	uint64_t lastAccessTime;
+
+} Pseudo_Perfect_LFU_Priority_t;
+
+
+
+void* Pseudo_Perfect_LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item);
+void Pseudo_Perfect_LFU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item);
+void Pseudo_Perfect_LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item);
+
+RankCache_Item_t* Pseudo_Perfect_LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
+
 
 
 /*********************************HC priority interface************************************************/

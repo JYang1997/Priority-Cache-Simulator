@@ -102,7 +102,7 @@ If size is not provided by default use logical size.\n";
 	
 	char* input_path = strdup(argv[1]);
 	char buf[1024];
-	sprintf(buf, "%s%s_%s_%s_delPerc%s.out", argv[2], basename(input_path), argv[4], argv[6],argv[5]);
+	sprintf(buf, "%s%s_%s_%s.out", argv[2], basename(input_path), argv[4], argv[6]);
 
 	FILE*       wfd = NULL;
 	if((wfd = fopen(buf,"a")) == NULL)
