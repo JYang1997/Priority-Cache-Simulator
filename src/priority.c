@@ -234,7 +234,7 @@ RankCache_Item_t* MRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 
 void* In_Cache_LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
 	In_Cache_LFU_Priority_t* p = malloc(sizeof(In_Cache_LFU_Priority_t));
-	p->freqCnt = 0;
+	p->freqCnt = 1;
 	p->lastAccessTime = cache->clock;
 	return p;
 } 
@@ -291,9 +291,10 @@ void* Perfect_LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
 	Perfect_LFU_freqNode* temp;
 	HASH_FIND(freq_hh, ((Perfect_LFU_globalData*)(cache->globalData))->EvictedItem_HashTable, &(item->key), sizeof(uint64_t), temp);
 	if (temp == NULL) {
-		p->freqCnt = 0;
+		p->freqCnt = 1;
+
 	} else {
-		p->freqCnt = temp->freqCnt;
+		p->freqCnt = temp->freqCnt+1;
 	}
 	p->lastAccessTime = cache->clock;
 
@@ -303,6 +304,7 @@ void* Perfect_LFU_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
 void Perfect_LFU_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) {
 	Perfect_LFU_Priority_t* p = (Perfect_LFU_Priority_t*)(item->priority);
 	p->freqCnt +=1;
+	// printf("up%ld\n", p->freqCnt);
 }
 
 void Perfect_LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item) {
@@ -314,6 +316,7 @@ void Perfect_LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* ite
 		temp->key = item->key;
 		HASH_ADD(freq_hh, ((Perfect_LFU_globalData*)(cache->globalData))->EvictedItem_HashTable, key, sizeof(uint64_t), temp);
 	}
+
 	temp->freqCnt = ((Perfect_LFU_Priority_t*)(item->priority))->freqCnt;
 }
 
