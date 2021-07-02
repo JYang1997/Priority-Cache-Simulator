@@ -5,22 +5,9 @@
 #include <stdio.h>
 #define CACHE_HIT 1
 #define CACHE_MISS 0
-#define COLDMISS -1234
-/*
- *this file defines abstraction for rank cache
- *user will have to implement the priority mechanism for it to work properly.
- */
+#define SET_ERROR 0
+#define SET_SUCESS 1
 
-//TODO:
-//		handle various size 
-		//handle eps
-
-//      handle cache size smaller than sample size in evictitem
-//      handle random init
-// struct _priority_t; //this struct will be used to keep all necessary priority info
-// 					//user will have to manually define this struct
-
-// typedef struct _priority_t priority_t;
 
 
 struct _RankCache_t;
@@ -85,8 +72,6 @@ typedef struct _RankCache_t {
 
 	RC_Stats_t* stat;
 
-
-
 	RankCache_Item_t *ItemIndex_HashTable; //fast item insert and random sampling
 	RankCache_Item_t *Item_HashTable; //hashtable used for storing
 } RankCache_t;
@@ -110,13 +95,6 @@ void RC_statInit(RC_Stats_t* stat);
 
 void output_results(RankCache_t* cache, FILE* fd);
 
-/******************************
- * methods for trunc the cache in runtime
- * this is probably needed for adap
- *
-*******************************/
-void cacheTrunc();
-/*********************************/
 
 //cache operations
 
@@ -143,12 +121,17 @@ uint8_t RC_getAndSet(RankCache_t* cache, uint64_t key, uint64_t size);
 //randomly delete one item from cache p percent of the time
 uint8_t RC_getAndSet_randomDel(RankCache_t* cache, uint64_t key, uint64_t size, float p);
 
-uint64_t evictItem(RankCache_t* cache);
-void addItem(RankCache_t* cache, RankCache_Item_t* item);
 
-//for a logical cache, size is just one
+
+
+//internal methods, 
+//those method should not modified stat data except totEvict, and totKey entry
+void evictItem(RankCache_t* cache);
+void addItem(RankCache_t* cache, RankCache_Item_t* item);
 RankCache_Item_t* createItem(uint64_t key, uint64_t size, uint64_t index); 
-RankCache_Item_t* findItem(RankCache_t* cache, uint64_t key);
+RankCache_Item_t* getItem(RankCache_t* cache, uint64_t key);
+RankCache_Item_t* deleteItem(RankCache_t* cache, uint64_t key);
+uint8_t setItem(RankCache_t* cache, uint64_t key, uint64_t size);
 
 
 

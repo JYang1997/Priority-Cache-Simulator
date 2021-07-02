@@ -78,8 +78,10 @@ void cacheFree(RankCache_t* cache) {
 }
 
 
-
-//return index of evicted item
+//Precondition: the index hash table must be tight i.e 0 to currnum-1
+//this function will always makesure
+// 1. currSize is smaller than cache capacity
+// 2. currNum index slot is empty.
 /*
  * This function will free enough space for newly entered item.
  * 
@@ -91,14 +93,14 @@ void cacheFree(RankCache_t* cache) {
  *
  *      1. we randomly select one element from cache
  *         then check the cache size is enough for new item
- *         if yes, return the index of evicted item
+ *         if yes, exit
  *         if no, place the last item in the evicted index
  *                decrement the currNum
  *                continue eviction
- *      2. cache->currNum = currNum - array size. 
+ *      2. cache->currNum = currNum--. 
  */
 
-uint64_t evictItem(RankCache_t* cache) {
+void evictItem(RankCache_t* cache) {
 
     assert(cache != NULL);
 
@@ -117,35 +119,22 @@ uint64_t evictItem(RankCache_t* cache) {
         for (int i = 1; i<cache->sample_size; i++) {
             rand_index = pcg64_random()%(cache->currNum);
             HASH_FIND(pos_hh, cache->ItemIndex_HashTable, &rand_index, sizeof(uint64_t), temp2);
+            if (temp2 == NULL) printf("index temp2: %ld currNum: %ld totalkey: %ld currRef: %ld\n", rand_index, cache->currNum, cache->stat->totKey, cache->stat->totRef);
+            assert(temp2 != NULL);
             min = cache->minPriorityItem(cache, temp1, temp2);
             temp1 = min;
             temp2 = NULL;   
         }
 
-        cache->updatePriorityOnEvict(cache, min);
-        ret_index = min->index;
-        HASH_DELETE(key_hh, cache->Item_HashTable, min);
-        HASH_DELETE(pos_hh, cache->ItemIndex_HashTable, min);
-        cache->currNum--;
-        cache->currSize -= min->size;
-        cache->stat->totKey--;
-        cache->stat->totEvict++;
-
+        min = deleteItem(cache, min->key);
         free(min->priority);
         free(min);
+        
+        cache->stat->totEvict++;
 
-        if (cache->currSize > cache->capacity) { //eps need
-            //currNum always pointed to next index, if one evicted
-            //we should change the item with currNum index to smaller one
-            //leave currNum empty
-            if (ret_index != cache->currNum) {
-                temp2= NULL;
-                HASH_FIND(pos_hh, cache->ItemIndex_HashTable, &(cache->currNum), sizeof(uint64_t), temp2);
-                HASH_DELETE(pos_hh, cache->ItemIndex_HashTable, temp2);
-                temp2->index = ret_index;
-                HASH_ADD(pos_hh, cache->ItemIndex_HashTable, index, sizeof(uint64_t), temp2);
-            }
-        }else {
+        
+
+        if (cache->currSize < cache->capacity) { //eps need
             break;
         }
 
@@ -153,11 +142,53 @@ uint64_t evictItem(RankCache_t* cache) {
 
 
     //evict
-    return ret_index;
+    // return ret_index;
 }
+
+
+RankCache_Item_t* deleteItem(RankCache_t* cache, uint64_t key) {
+    assert(cache != NULL);
+
+    RankCache_Item_t* item = getItem(cache, key);
+
+    if (item != NULL) {
+
+        cache->updatePriorityOnEvict(cache, item);
+        uint64_t ret_index = item->index;
+        HASH_DELETE(key_hh, cache->Item_HashTable, item);
+        HASH_DELETE(pos_hh, cache->ItemIndex_HashTable, item);
+        cache->currNum--;
+        cache->currSize -= item->size;
+        cache->stat->totKey--;
+
+        RankCache_Item_t* temp = NULL;  //currNum already sub by 1,hence point to last element
+        HASH_FIND(pos_hh, cache->ItemIndex_HashTable, &(cache->currNum), sizeof(uint64_t), temp);
+        //if curr num does not exist, 1. cache is empty 2. curr num point to deleted item
+        // in either cache don't need to delete curr num
+        if (temp != NULL) {
+            HASH_DELETE(pos_hh, cache->ItemIndex_HashTable, temp);
+
+            temp->index = ret_index;
+            HASH_ADD(pos_hh, cache->ItemIndex_HashTable, index, sizeof(uint64_t), temp);
+        }
+    } 
+    
+    return item;
+}
+
 
 void addItem(RankCache_t* cache, RankCache_Item_t* item) {
     assert(item != NULL && cache != NULL);
+
+    //before adding, handle eviction
+    cache->currSize += item->size;
+    while (cache->currSize > cache->capacity) //eps handle
+        evictItem(cache); //cache size reduce 
+
+
+    //if eviction happen, item's index might need to change to most recent currNum
+    item->index = cache->currNum;
+
     HASH_ADD(pos_hh, cache->ItemIndex_HashTable, index, sizeof(uint64_t), item);
     HASH_ADD(key_hh, cache->Item_HashTable, key, sizeof(uint64_t), item);
     cache->stat->totKey++;
@@ -165,10 +196,9 @@ void addItem(RankCache_t* cache, RankCache_Item_t* item) {
 }
 
 //for a logical cache, size is just one
-RankCache_Item_t* createItem(
-                uint64_t key, 
-                uint64_t size, 
-                uint64_t index) {
+RankCache_Item_t* createItem (uint64_t key, 
+                              uint64_t size, 
+                              uint64_t index) {
 
     RankCache_Item_t *item = malloc(sizeof(RankCache_Item_t));
     if (item == NULL) {
@@ -185,11 +215,39 @@ RankCache_Item_t* createItem(
 
 
 //internal helper
-RankCache_Item_t* findItem(RankCache_t* cache, uint64_t key) {
+RankCache_Item_t* getItem(RankCache_t* cache, uint64_t key) {
     RankCache_Item_t* item = NULL;
     HASH_FIND(key_hh, cache->Item_HashTable, &key, sizeof(uint64_t), item);
     return item;
 }
+
+
+uint8_t setItem(RankCache_t* cache, uint64_t key, uint64_t size) {
+
+    if (size > cache->capacity) {
+        /*handle size is larger than cache,
+          for now we report error and terminate program,
+          second option is to skip it*/
+        fprintf(stderr, "key: %ld size: %ld exceed cache capacity! \n", key, size);
+        return SET_ERROR;
+    }
+
+    RankCache_Item_t* item = getItem(cache, key);
+
+    if (item != NULL) {
+        item = deleteItem(cache, item->key);
+        free(item->priority);
+        free(item);
+    }
+    
+    item = createItem(key, size, cache->currNum);
+    item->priority = cache->createPriority(cache, item);
+    addItem(cache, item); //cache currNum (index) increment++
+
+    return SET_SUCESS;
+}
+
+
 
 
 
@@ -200,51 +258,34 @@ RankCache_Item_t* RC_get(RankCache_t* cache, uint64_t key) {
 
     assert(cache != NULL);
 
-    cache->clock += 1;
-    cache->stat->totRef += 1;
-    cache->stat->totGet += 1;
+    cache->clock++;
+    cache->stat->totRef++;
+    cache->stat->totGet++;
 
-    RankCache_Item_t* item = findItem(cache, key);
+    RankCache_Item_t* item = getItem(cache, key);
 
     if (item == NULL) cache->stat->totMiss += 1;
+    else {
+        cache->updatePriorityOnHit(cache, item);
+    }
     return item;
 }
 
 uint8_t RC_set(RankCache_t* cache, uint64_t key, uint64_t size) {
 
     assert(cache != NULL);
+
     cache->clock++;
     cache->stat->totRef++;
     cache->stat->totSet++;
 
-    RankCache_Item_t* item = findItem(cache, key);
+    uint8_t ret = setItem(cache, key, size);
 
-    if (item == NULL) {//cache miss
-
-        if (size > cache->capacity) {
-            /*handle size is larger than cache,
-              for now we report error and terminate program,
-              second option is to skip it*/
-            fprintf(stderr, "key: %ld size: %ld exceed cache capacity! \n", key, size);
-            exit(-1);
-        }
-
-        uint64_t index = cache->currNum;
-        /* update the cache size, if updated size is too large, evict some from curr cache */
-        
-        cache->currSize = cache->currSize + size;
-        if(cache->currSize > cache->capacity) //eps handle
-            index = evictItem(cache); //cache size reduce 
-
-        item = createItem(key, size, index);
-        item->priority = cache->createPriority(cache, item);
-        addItem(cache, item); //cache currNum (index) increment++
-    } else {
-        item->size = size;
-        cache->updatePriorityOnHit(cache, item); //increment hit &lifetime table
+    if (ret == SET_ERROR) {
+        exit(-1);
     }
 
-    return 1;
+    return ret;
 
 }
 
@@ -255,35 +296,18 @@ uint8_t RC_getAndSet(RankCache_t* cache, uint64_t key, uint64_t size) {
     cache->stat->totRef++;
     cache->stat->totGetSet++;
 
-    RankCache_Item_t* item = findItem(cache, key);
+    RankCache_Item_t* item = getItem(cache, key);
 
-    if (item == NULL) {//cache miss
-
-        if (size > cache->capacity) {
-            /*handle size is larger than cache,
-              for now we report error and terminate program,
-              second option is to skip it*/
-            fprintf(stderr, "key: %ld size: %ld exceed cache capacity! \n", key, size);
-            exit(-1);
-        }
-
-        uint64_t index = cache->currNum;
-        /* update the cache size, if updated size is too large, evict some from curr cache */
-        
-        cache->currSize = cache->currSize + size;
-        if(cache->currSize > cache->capacity) //eps handle
-            index = evictItem(cache); //cache size reduce 
-
-        item = createItem(key, size, index);
-        item->priority = cache->createPriority(cache, item);
-        addItem(cache, item); //cache currNum (index) increment++
-
+    if (item == NULL) {
+        uint8_t ret = setItem(cache, key, size);
+        if (ret == SET_ERROR) exit(-1);
         cache->stat->totMiss += 1;
         return CACHE_MISS;
     } else {
-        cache->updatePriorityOnHit(cache, item); //increment hit &lifetime table
+        cache->updatePriorityOnHit(cache, item);
         return CACHE_HIT;
     }
+
 }
 
 //when delete move index of 
@@ -294,28 +318,8 @@ RankCache_Item_t* RC_del(RankCache_t* cache, uint64_t key) {
     cache->stat->totRef += 1;
     cache->stat->totDel += 1;
 
-    RankCache_Item_t* item = findItem(cache, key);
-
-    if (item != NULL) {
-
-        cache->updatePriorityOnEvict(cache, item);
-        uint64_t ret_index = item->index;
-        HASH_DELETE(key_hh, cache->Item_HashTable, item);
-        HASH_DELETE(pos_hh, cache->ItemIndex_HashTable, item);
-        cache->currNum--;
-        cache->currSize -= item->size;
-        cache->stat->totKey--;
-
-        RankCache_Item_t* temp = NULL;                          //currNum already sub by 1,hence point to last element
-        HASH_FIND(pos_hh, cache->ItemIndex_HashTable, &(cache->currNum), sizeof(uint64_t), temp);
-        //if curr num does not exist, 1. cache is empty 2. curr num point to deleted item
-        // in either cache don't need to delete curr num
-        if (temp != NULL) {
-            HASH_DELETE(pos_hh, cache->ItemIndex_HashTable, temp);
-            temp->index = ret_index;
-            HASH_ADD(pos_hh, cache->ItemIndex_HashTable, index, sizeof(uint64_t), temp);
-        }
-    }
+    RankCache_Item_t* item = deleteItem(cache, key);
+   
     return item;
 
 }
@@ -342,6 +346,7 @@ uint8_t RC_getAndSet_randomDel(RankCache_t* cache, uint64_t key, uint64_t size, 
 
     if (tmp < p && cache->currNum > 0) {
         RankCache_Item_t* item = RC_random_del(cache);
+
         if (item != NULL) {
             free(item->priority);
             free(item);

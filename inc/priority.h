@@ -82,6 +82,8 @@ void Perfect_LFU_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* ite
 
 RankCache_Item_t* Perfect_LFU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
 
+
+
 /*********************************pseudo-perfect LFU priority interface************************************************/
 //use logarithmic counter of max 255
 
@@ -115,6 +117,38 @@ void* HC_initPriority(RankCache_t* cache, RankCache_Item_t* item);
 void HC_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) ;
 void HC_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item);
 RankCache_Item_t* HC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
+
+
+/*********************************PHC priority interface************************************************/
+//must store deleted item into hash table
+typedef struct _PHC_freqNode {
+	uint64_t key;
+	uint64_t freqCnt;
+	UT_hash_handle freq_hh; 
+} PHC_freqNode;
+
+typedef struct _PHC_globalData {
+	PHC_freqNode *EvictedItem_HashTable;
+
+} PHC_globalData;
+
+void PHC_globalDataInit(RankCache_t* cache);
+void PHC_globalDataFree(RankCache_t* cache);
+
+typedef struct _PHC_Priority_t
+{
+	uint64_t freqCnt;
+	uint64_t lastAccessTime;
+
+} PHC_Priority_t;
+
+
+
+void* PHC_initPriority(RankCache_t* cache, RankCache_Item_t* item);
+void PHC_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item);
+void PHC_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item);
+
+RankCache_Item_t* PHC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2);
 
 
 /*********************************LHD priority interface************************************************/

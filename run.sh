@@ -41,6 +41,7 @@ Hist_binSize=(
 
 # TRss=(1 2 4 8 16)
 TRss=(1 2 4 8 16 32)
+TRss=(32)
 Hist_num=10000
 
 

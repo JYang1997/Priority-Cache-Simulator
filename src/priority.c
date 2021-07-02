@@ -43,6 +43,83 @@ RankCache_Item_t* HC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1
 
 
 
+/*********************************PHC priority interface************************************************/
+/***************perfect HC: use perfect freq and time from last access time******************************/
+
+void PHC_globalDataInit(RankCache_t* cache) {
+	PHC_globalData* gd = malloc(sizeof(PHC_globalData));
+
+	gd->EvictedItem_HashTable = NULL;
+
+	cache->globalData = (void*)gd;
+}
+
+void PHC_globalDataFree(RankCache_t* cache) {
+	PHC_globalData* gd = (PHC_globalData*)cache->globalData;
+	PHC_freqNode *currItem, *tmp;
+
+	HASH_ITER(freq_hh, gd->EvictedItem_HashTable, currItem, tmp) {
+		HASH_DELETE(freq_hh,gd->EvictedItem_HashTable, currItem);  /* delete; users advances to next */
+		free(currItem);           /* optional- if you want to free  */
+	}
+}
+
+//on init check whether it is in evicted table
+// if it is, use the old freq cnt
+void* PHC_initPriority(RankCache_t* cache, RankCache_Item_t* item) {
+	
+
+	PHC_Priority_t* p = malloc(sizeof(PHC_Priority_t));
+	
+	PHC_freqNode* temp;
+	HASH_FIND(freq_hh, ((PHC_globalData*)(cache->globalData))->EvictedItem_HashTable, &(item->key), sizeof(uint64_t), temp);
+	if (temp == NULL) {
+		p->freqCnt = 1;
+
+	} else {
+		p->freqCnt = temp->freqCnt+1;
+	}
+	
+	p->lastAccessTime = cache->clock;
+	return p;
+} 
+
+void PHC_updatePriorityOnHit(RankCache_t* cache, RankCache_Item_t* item) {
+	PHC_Priority_t* p = (PHC_Priority_t*)(item->priority);
+	p->freqCnt +=1;
+	p->lastAccessTime = cache->clock;
+	// printf("up%ld\n", p->freqCnt);
+}
+
+void PHC_updatePriorityOnEvict(RankCache_t* cache, RankCache_Item_t* item) {
+//dup Item then store it to 
+	PHC_freqNode* temp;
+	HASH_FIND(freq_hh, ((PHC_globalData*)(cache->globalData))->EvictedItem_HashTable, &(item->key), sizeof(uint64_t), temp);
+	if (temp == NULL) {
+		temp = malloc(sizeof(PHC_freqNode));
+		temp->key = item->key;
+		HASH_ADD(freq_hh, ((PHC_globalData*)(cache->globalData))->EvictedItem_HashTable, key, sizeof(uint64_t), temp);
+	}
+
+	temp->freqCnt = ((PHC_Priority_t*)(item->priority))->freqCnt;
+}
+
+
+
+RankCache_Item_t* PHC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item1, RankCache_Item_t* item2) {
+	
+	assert(item1 != NULL);
+	assert(item2 != NULL);
+
+	PHC_Priority_t* pp1 = (PHC_Priority_t*)(item1->priority);
+	PHC_Priority_t* pp2 = (PHC_Priority_t*)(item2->priority);
+	uint64_t p1 = pp1->freqCnt / (double)(cache->clock - pp1->lastAccessTime);
+	uint64_t p2 = pp2->freqCnt / (double)(cache->clock - pp2->lastAccessTime);
+	// if (p1 == p2) return pp1->lastAccessTime <= pp2->lastAccessTime ? item1 : item2;
+	return p1 <= p2 ? item1 : item2;
+}
+
+
 /*********************************LHD priority interface************************************************/
 
 
@@ -188,6 +265,7 @@ RankCache_Item_t* LRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 	
 	assert(item1 != NULL);
 	assert(item2 != NULL);
+	
 
 	LRU_Priority_t* pp1 = (LRU_Priority_t*)(item1->priority);
 	LRU_Priority_t* pp2 = (LRU_Priority_t*)(item2->priority);
