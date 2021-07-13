@@ -119,7 +119,7 @@ void evictItem(RankCache_t* cache) {
         for (int i = 1; i<cache->sample_size; i++) {
             rand_index = pcg64_random()%(cache->currNum);
             HASH_FIND(pos_hh, cache->ItemIndex_HashTable, &rand_index, sizeof(uint64_t), temp2);
-            if (temp2 == NULL) printf("index temp2: %ld currNum: %ld totalkey: %ld currRef: %ld\n", rand_index, cache->currNum, cache->stat->totKey, cache->stat->totRef);
+            // if (temp2 == NULL) printf("index temp2: %ld currNum: %ld totalkey: %ld currRef: %ld\n", rand_index, cache->currNum, cache->stat->totKey, cache->stat->totRef);
             assert(temp2 != NULL);
             min = cache->minPriorityItem(cache, temp1, temp2);
             temp1 = min;

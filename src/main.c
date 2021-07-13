@@ -167,6 +167,15 @@ If size is not provided by default use logical size.\n";
 								   HC_updatePriorityOnHit,
 								   HC_updatePriorityOnEvict,
 								   HC_minPriorityItem);
+	} else if (strcmp(argv[6], "phc") == 0) {
+			cache = cacheInit(strtoul(argv[3], NULL, 10),
+								   strtoul(argv[4], NULL, 10),
+								   "phc",
+								   PHC_initPriority,
+								   PHC_updatePriorityOnHit,
+								   PHC_updatePriorityOnEvict,
+								   PHC_minPriorityItem);
+			PHC_globalDataInit(cache);
 	}else {
 		printf("%s", input_format);
 		return 0;

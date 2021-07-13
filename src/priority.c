@@ -113,8 +113,8 @@ RankCache_Item_t* PHC_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 
 	PHC_Priority_t* pp1 = (PHC_Priority_t*)(item1->priority);
 	PHC_Priority_t* pp2 = (PHC_Priority_t*)(item2->priority);
-	uint64_t p1 = pp1->freqCnt / (double)(cache->clock - pp1->lastAccessTime);
-	uint64_t p2 = pp2->freqCnt / (double)(cache->clock - pp2->lastAccessTime);
+	double p1 = pp1->freqCnt / (double)(cache->clock - pp1->lastAccessTime);
+	double p2 = pp2->freqCnt / (double)(cache->clock - pp2->lastAccessTime);
 	// if (p1 == p2) return pp1->lastAccessTime <= pp2->lastAccessTime ? item1 : item2;
 	return p1 <= p2 ? item1 : item2;
 }
@@ -265,7 +265,7 @@ RankCache_Item_t* LRU_minPriorityItem(RankCache_t* cache, RankCache_Item_t* item
 	
 	assert(item1 != NULL);
 	assert(item2 != NULL);
-	
+
 
 	LRU_Priority_t* pp1 = (LRU_Priority_t*)(item1->priority);
 	LRU_Priority_t* pp2 = (LRU_Priority_t*)(item2->priority);
